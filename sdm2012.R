@@ -170,6 +170,34 @@ for (i in LAS.FILES){
 			  "/ascii", CHM, RES.CHM, "m m 1 0 0 0", LAS))
 }
 
+# CLIP CHM ----------
+require(raster)
+xBounds = seq(MINX, MAXX, by = XSTEP)
+yBounds = rev(seq(MINY, MAXY, by = YSTEP))
+
+for (c in seq(1, length(xBounds)-1)){
+  for (l in seq(1, length(yBounds)-1)){
+    boundary = as(extent(xBounds[c], xBounds[c+1], yBounds[l+1], yBounds[l]), 'SpatialPolygons')
+    if(file.exists(paste(WORK.PATH, CHM.PATH, "tile00",l,"x00",c,"chm.asc", sep=""))){
+      chmTemp = tryCatch({
+        raster(paste(WORK.PATH, CHM.PATH, "tile00",l,"x00",c,"chm.asc", sep=""))
+      }, warning = function(w) {
+        hasCHM = FALSE
+      }, error = function(e) {
+        hasCHM = FALSE
+      }, finally = {
+        hasCHM = TRUE
+      })
+    } else {next}  
+    if(is.null(intersect(extent(chmTemp), boundary))){
+    	next    
+    }else{
+      chmTemp = crop(chmTemp, boundary)
+      writeRaster(chmTemp, paste(WORK.PATH, CHM.PATH, "tile00",l,"x00",c,"chmCrop.tif", sep=""))
+    }
+  }
+}
+
 # NORM --------------------------
 NORM.PATH = "norm\\"
 dir.create("norm")  
@@ -381,39 +409,6 @@ for (i in LAS.FILES){
     shell(paste("c:\\fusion\\csv2grid", GRD, col, GOUT))
   }  
 }
-    
-# POST PROCESSING ----------
-# CLIP CHM ----------
-require(raster)
-xBounds = seq(MINX, MAXX, by = STP)
-yBounds = rev(seq(MINY, MAXY, by = STP))
-for (c in seq(1, length(xBounds)-1)){
-  for (l in seq(1, length(yBounds)-1)){
-    print(c(l, c))
-    boundary = as(extent(xBounds[c], xBounds[c+1], yBounds[l+1], yBounds[l]), 'SpatialPolygons')
-    plot(boundary)
-    if(file.exists(paste(WORK.PATH, CHM.PATH, "tile00",c,"x00",l,"CleanThinchm.asc", sep=""))){
-      chmTemp = tryCatch({
-        raster(paste(WORK.PATH, CHM.PATH, "tile00",c,"x00",l,"CleanThinchm.asc", sep=""))
-      }, warning = function(w) {
-        hasCHM = FALSE
-      }, error = function(e) {
-        hasCHM = FALSE
-      }, finally = {
-        hasCHM = TRUE
-      })
-      
-      if(is.null(intersect(extent(chmTemp), boundary))){
-        
-      }else{
-        chmTemp = crop(chmTemp, boundary)
-        writeRaster(chmTemp, paste(WORK.PATH, CHM.PATH, "tile00",l,"x00",c,"CleanChmCrop.tif", sep=""))
-        plot(boundary)
-        plot(chmTemp, add=TRUE)
-        plot(boundary, add=TRUE)
-      }
-    }
-  }
-}
+   
 
   
