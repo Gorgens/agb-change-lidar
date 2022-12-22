@@ -261,6 +261,23 @@ shell(paste("c:\\fusion\\PolyClipData",
 		paste0(WORK.PATH, PLOTS.PATH, "plot.las"),
 		paste0(WORK.PATH, NORM.PATH, "*.las")))
 
+# CLOUD METRICS PLOTS -----------
+LAS.FILES = list.files(paste(WORK.PATH, PLOTS.PATH, sep=""), pattern = "*.las")
+for (i in LAS.FILES){
+    LAS = paste(WORK.PATH, PLOTS.PATH, tools::file_path_sans_ext(i), ".las", sep="")
+	CSV = paste(WORK.PATH, PLOTS.PATH, "MetricsPlots.csv", sep="")
+      
+    print(paste("c:\\fusion\\CloudMetrics", 
+				paste0('/above:', HEIGHT),
+                LAS,
+				CSV))
+    shell(paste("c:\\fusion\\CloudMetrics", 
+				paste0('/above:', HEIGHT),
+                LAS,
+				CSV))
+}
+
+
 
 
 REM PAREI AQUI!!!!!!!!!!!!!!!!!!!!!!!!!!  
