@@ -7,8 +7,12 @@ ORIG.LAS = "C:\\FUSION\\SDM\\SDM_A01_2012_LiDAR\\LAZ\\"
 RES.CHM = 1
 
 # PARAMETROS OPCIONAIS -----------
-THIN = FALSE
-  DEN = 5
+CLEAN = FALSE
+  SD = 4.5 
+  WD = 30
+
+THIN = TRUE
+  DEN = 4
   WT = 50
 
 GRID = TRUE
@@ -50,36 +54,44 @@ for (xCol in seq(1, length(xBounds)-1)){
 }
 
 # CLEAN OUTLIER ------------------  
-CLEAN.PATH = "clean\\"
-SD = 4.5 
-WD = 30
-LAS.FILES = list.files(paste(WORK.PATH, TILES.PATH, sep=""), pattern = "*.las")
-dir.create("clean")
-for (i in LAS.FILES){
-  LAS = paste(WORK.PATH, TILES.PATH, i, sep="")
-  CLN = paste(WORK.PATH, CLEAN.PATH, tools::file_path_sans_ext(i), "Clean.las", sep="")
-  print(paste("c:\\fusion\\filterdata outlier", SD, WD, CLN, LAS))
-  shell(paste("c:\\fusion\\filterdata outlier", SD, WD, CLN, LAS))
-}
+# CLEAN.PATH = "clean\\"
+# LAS.FILES = list.files(paste(WORK.PATH, TILES.PATH, sep=""), pattern = "*.las")
+# dir.create("clean")
+# for (i in LAS.FILES){
+  # LAS = paste(WORK.PATH, TILES.PATH, i, sep="")
+  # CLN = paste(WORK.PATH, CLEAN.PATH, tools::file_path_sans_ext(i), ".las", sep="")
+  # print(paste("c:\\fusion\\filterdata outlier", SD, WD, CLN, LAS))
+  # shell(paste("c:\\fusion\\filterdata outlier", SD, WD, CLN, LAS))
+# }
 
 # DIGITAL TERRAIN MODEL -------------
 GND.PATH = "gnd\\"
 DTM.PATH = "dtm\\"
 RES.DTM = 1
-LAS.FILES = list.files(paste(WORK.PATH, CLEAN.PATH, sep=""), pattern = "*.las")
 dir.create("gnd")
 dir.create("dtm")
+
+
+if (CLEAN){
+	LAS.FILES = list.files(paste(WORK.PATH, CLEAN.PATH, sep=""), pattern = "*.las")
+} else {
+	LAS.FILES = list.files(paste(WORK.PATH, TILES.PATH, sep=""), pattern = "*.las")
+}
 for (i in LAS.FILES){
-  LAS = paste(WORK.PATH, CLEAN.PATH, i, sep="")
-  GND = paste(WORK.PATH, GND.PATH, tools::file_path_sans_ext(i), "gnd.las", sep="")
-  print(paste("c:\\fusion\\GroundFilter", GND, 8, LAS))
-  shell(paste("c:\\fusion\\GroundFilter", GND, 8, LAS))
-  DTM = paste(WORK.PATH, DTM.PATH, tools::file_path_sans_ext(i), "dtm.dtm", sep="")
-  DTM2 = paste(WORK.PATH, DTM.PATH, tools::file_path_sans_ext(i), "dtm.asc", sep="")
-  print(paste("c:\\fusion\\GridSurfaceCreate", DTM, RES.DTM,"m m 1 0 0 0", GND))
-  shell(paste("c:\\fusion\\GridSurfaceCreate", DTM, RES.DTM,"m m 1 0 0 0", GND))
-  print(paste("c:\\fusion\\dtm2ascii",DTM, DTM2))
-  shell(paste("c:\\fusion\\dtm2ascii", DTM, DTM2))
+	if (CLEAN){
+		LAS = paste(WORK.PATH, CLEAN.PATH, i, sep="")
+	} else {
+		LAS = paste(WORK.PATH, TILES.PATH, i, sep="")
+	}
+	GND = paste(WORK.PATH, GND.PATH, tools::file_path_sans_ext(i), "gnd.las", sep="")
+	print(paste("c:\\fusion\\GroundFilter", GND, 8, LAS))
+	shell(paste("c:\\fusion\\GroundFilter", GND, 8, LAS))
+	DTM = paste(WORK.PATH, DTM.PATH, tools::file_path_sans_ext(i), "dtm.dtm", sep="")
+	DTM2 = paste(WORK.PATH, DTM.PATH, tools::file_path_sans_ext(i), "dtm.asc", sep="")
+	print(paste("c:\\fusion\\GridSurfaceCreate", DTM, RES.DTM,"m m 1 0 0 0", GND))
+	shell(paste("c:\\fusion\\GridSurfaceCreate", DTM, RES.DTM,"m m 1 0 0 0", GND))
+	print(paste("c:\\fusion\\dtm2ascii",DTM, DTM2))
+	shell(paste("c:\\fusion\\dtm2ascii", DTM, DTM2))
 }
 
 # CLIP DTM ----------
@@ -90,9 +102,9 @@ yBounds = rev(seq(MINY, MAXY, by = YSTEP))
 for (c in seq(1, length(xBounds)-1)){
   for (l in seq(1, length(yBounds)-1)){
     boundary = as(extent(xBounds[c], xBounds[c+1], yBounds[l+1], yBounds[l]), 'SpatialPolygons')
-    if(file.exists(paste(WORK.PATH, DTM.PATH, "tile00",l,"x00",c,"Cleandtm.asc", sep=""))){
+    if(file.exists(paste(WORK.PATH, DTM.PATH, "tile00",l,"x00",c,"dtm.asc", sep=""))){
       chmTemp = tryCatch({
-        raster(paste(WORK.PATH, DTM.PATH, "tile00",l,"x00",c,"Cleandtm.asc", sep=""))
+        raster(paste(WORK.PATH, DTM.PATH, "tile00",l,"x00",c,"dtm.asc", sep=""))
       }, warning = function(w) {
         hasCHM = FALSE
       }, error = function(e) {
@@ -105,53 +117,138 @@ for (c in seq(1, length(xBounds)-1)){
     	next    
     }else{
       chmTemp = crop(chmTemp, boundary)
-      writeRaster(chmTemp, paste(WORK.PATH, DTM.PATH, "tile00",l,"x00",c,"CleanDtmCrop.tif", sep=""))
+      writeRaster(chmTemp, paste(WORK.PATH, DTM.PATH, "tile00",l,"x00",c,"DtmCrop.tif", sep=""))
     }
   }
 }
 
+# THINNING DATA ---------------------
+dir.create("thin")
+if (CLEAN){
+	LAS.FILES = list.files(paste(WORK.PATH, CLEAN.PATH, sep=""), pattern = "*.las")
+} else {
+	LAS.FILES = list.files(paste(WORK.PATH, TILES.PATH, sep=""), pattern = "*.las")
+}
+if (THIN){
+	for (i in LAS.FILES){
+		if (CLEAN){
+		LAS = paste(WORK.PATH, CLEAN.PATH, tools::file_path_sans_ext(i), ".las", sep="")
+		} else {
+		LAS = paste(WORK.PATH, TILES.PATH, tools::file_path_sans_ext(i), ".las", sep="")
+		}
+		THN = paste(WORK.PATH, THIN.PATH, tools::file_path_sans_ext(i), "Thin.las", sep = "")
+		print(paste("c:\\fusion\\ThinData", 
+				  THN, DEN, WT, LAS))
+		shell(paste("c:\\fusion\\ThinData", 
+				  THN, DEN, WT, LAS))
+		LAS = paste(WORK.PATH, THIN.PATH, tools::file_path_sans_ext(i), "Thin.las", sep="")
+	}
+}
+
 # CANOPY HEIGHT MODEL --------------
 dir.create("chm")
-LAS.FILES = list.files(paste(WORK.PATH, CLEAN.PATH, sep=""), pattern = "*.las")
+if (CLEAN){
+	LAS.FILES = list.files(paste(WORK.PATH, CLEAN.PATH, sep=""), pattern = "*.las")
+} else {
+	LAS.FILES = list.files(paste(WORK.PATH, TILES.PATH, sep=""), pattern = "*.las")
+}
 for (i in LAS.FILES){
-  if(THIN){
-    CHM = paste(WORK.PATH, CHM.PATH, tools::file_path_sans_ext(i), "Thinchm.dtm", sep="")
-    CHM2 = paste(WORK.PATH, CHM.PATH, tools::file_path_sans_ext(i), "Thinchm.tif", sep="")
-  } else {
     CHM = paste(WORK.PATH, CHM.PATH, tools::file_path_sans_ext(i), "chm.dtm", sep="")
     CHM2 = paste(WORK.PATH, CHM.PATH, tools::file_path_sans_ext(i), "chm.tif", sep="")
-  }
-  DTM = paste(WORK.PATH, DTM.PATH, tools::file_path_sans_ext(i), "dtm.dtm", sep="")
-  CLN = paste(WORK.PATH, CLEAN.PATH, tools::file_path_sans_ext(i), ".las", sep="")
+	DTM = paste(WORK.PATH, DTM.PATH, tools::file_path_sans_ext(i), "dtm.dtm", sep="")
+	if (CLEAN){
+		LAS = paste(WORK.PATH, CLEAN.PATH, tools::file_path_sans_ext(i), ".las", sep="")
+	} else {
+		LAS = paste(WORK.PATH, TILES.PATH, tools::file_path_sans_ext(i), ".las", sep="")
+	}
 
-  print(paste("c:\\fusion\\CanopyModel", 
-              paste("/ground:", DTM, sep = ""),
-              "/ascii", CHM, RES.CHM, "m m 1 0 0 0", CLN))
-  shell(paste("c:\\fusion\\CanopyModel", 
-              paste("/ground:", DTM, sep = ""),
-              "/ascii", CHM, RES.CHM, "m m 1 0 0 0", CLN))
+	print(paste("c:\\fusion\\CanopyModel", 
+			  paste("/ground:", DTM, sep = ""),
+			  "/ascii", CHM, RES.CHM, "m m 1 0 0 0", LAS))
+	shell(paste("c:\\fusion\\CanopyModel", 
+			  paste("/ground:", DTM, sep = ""),
+			  "/ascii", CHM, RES.CHM, "m m 1 0 0 0", LAS))
 }
 
 # NORM --------------------------
 NORM.PATH = "norm\\"
 dir.create("norm")  
-  
-for (xCol in seq(1, length(xBounds)-1)){
-  for (yLin in seq(1, length(yBounds)-1)){
-    print(paste("c:\\fusion\\clipdata",
-		    paste("/dtm:", WORK.PATH, DTM.PATH, "*.dtm", sep=""),
-		    "/height", 
-                paste(WORK.PATH, CLEAN.PATH, "*.las", sep=""),
-                paste(WORK.PATH, NORM.PATH, "tile00",yLin,"x00",xCol,".las", sep=""),
-                xBounds[xCol], yBounds[yLin+1], xBounds[xCol+1], yBounds[yLin]))
-    shell(paste("c:\\fusion\\clipdata",
-                paste("/dtm:", WORK.PATH, DTM.PATH, "*.dtm", sep=""),
-		    "/height", 
-                paste(WORK.PATH, CLEAN.PATH, "*.las", sep=""),
-                paste(WORK.PATH, NORM.PATH, "tile00",yLin,"x00",xCol,".las", sep=""),
-                xBounds[xCol] - BUFFER, yBounds[yLin+1] - BUFFER, 
-                xBounds[xCol+1] + BUFFER, yBounds[yLin] + BUFFER))
-  }
+if (CLEAN){ 
+	if (THIN){
+		for (xCol in seq(1, length(xBounds)-1)){
+		  for (yLin in seq(1, length(yBounds)-1)){
+			print(paste("c:\\fusion\\clipdata",
+					paste("/dtm:", WORK.PATH, DTM.PATH, "*.dtm", sep=""),
+					"/height", 
+						paste(WORK.PATH, THIN.PATH, "*.las", sep=""),
+						paste(WORK.PATH, NORM.PATH, "tile00",yLin,"x00",xCol,".las", sep=""),
+						xBounds[xCol], yBounds[yLin+1], xBounds[xCol+1], yBounds[yLin]))
+			shell(paste("c:\\fusion\\clipdata",
+						paste("/dtm:", WORK.PATH, DTM.PATH, "*.dtm", sep=""),
+					"/height", 
+						paste(WORK.PATH, THIN.PATH, "*.las", sep=""),
+						paste(WORK.PATH, NORM.PATH, "tile00",yLin,"x00",xCol,".las", sep=""),
+						xBounds[xCol] - BUFFER, yBounds[yLin+1] - BUFFER, 
+						xBounds[xCol+1] + BUFFER, yBounds[yLin] + BUFFER))
+		  }
+		}
+	} else {
+		for (xCol in seq(1, length(xBounds)-1)){
+		  for (yLin in seq(1, length(yBounds)-1)){
+			print(paste("c:\\fusion\\clipdata",
+					paste("/dtm:", WORK.PATH, DTM.PATH, "*.dtm", sep=""),
+					"/height", 
+						paste(WORK.PATH, CLEAN.PATH, "*.las", sep=""),
+						paste(WORK.PATH, NORM.PATH, "tile00",yLin,"x00",xCol,".las", sep=""),
+						xBounds[xCol], yBounds[yLin+1], xBounds[xCol+1], yBounds[yLin]))
+			shell(paste("c:\\fusion\\clipdata",
+						paste("/dtm:", WORK.PATH, DTM.PATH, "*.dtm", sep=""),
+					"/height", 
+						paste(WORK.PATH, CLEAN.PATH, "*.las", sep=""),
+						paste(WORK.PATH, NORM.PATH, "tile00",yLin,"x00",xCol,".las", sep=""),
+						xBounds[xCol] - BUFFER, yBounds[yLin+1] - BUFFER, 
+						xBounds[xCol+1] + BUFFER, yBounds[yLin] + BUFFER))
+		  }
+		}
+	}
+} else {
+	if(THIN){
+		for (xCol in seq(1, length(xBounds)-1)){
+		  for (yLin in seq(1, length(yBounds)-1)){
+			print(paste("c:\\fusion\\clipdata",
+					paste("/dtm:", WORK.PATH, DTM.PATH, "*.dtm", sep=""),
+					"/height", 
+						paste(WORK.PATH, THIN.PATH, "*.las", sep=""),
+						paste(WORK.PATH, NORM.PATH, "tile00",yLin,"x00",xCol,".las", sep=""),
+						xBounds[xCol], yBounds[yLin+1], xBounds[xCol+1], yBounds[yLin]))
+			shell(paste("c:\\fusion\\clipdata",
+						paste("/dtm:", WORK.PATH, DTM.PATH, "*.dtm", sep=""),
+					"/height", 
+						paste(WORK.PATH, THIN.PATH, "*.las", sep=""),
+						paste(WORK.PATH, NORM.PATH, "tile00",yLin,"x00",xCol,".las", sep=""),
+						xBounds[xCol] - BUFFER, yBounds[yLin+1] - BUFFER, 
+						xBounds[xCol+1] + BUFFER, yBounds[yLin] + BUFFER))
+		  }
+		}
+	} else {
+		for (xCol in seq(1, length(xBounds)-1)){
+		  for (yLin in seq(1, length(yBounds)-1)){
+			print(paste("c:\\fusion\\clipdata",
+					paste("/dtm:", WORK.PATH, DTM.PATH, "*.dtm", sep=""),
+					"/height", 
+						paste(WORK.PATH, TILES.PATH, "*.las", sep=""),
+						paste(WORK.PATH, NORM.PATH, "tile00",yLin,"x00",xCol,".las", sep=""),
+						xBounds[xCol], yBounds[yLin+1], xBounds[xCol+1], yBounds[yLin]))
+			shell(paste("c:\\fusion\\clipdata",
+						paste("/dtm:", WORK.PATH, DTM.PATH, "*.dtm", sep=""),
+					"/height", 
+						paste(WORK.PATH, TILES.PATH, "*.las", sep=""),
+						paste(WORK.PATH, NORM.PATH, "tile00",yLin,"x00",xCol,".las", sep=""),
+						xBounds[xCol] - BUFFER, yBounds[yLin+1] - BUFFER, 
+						xBounds[xCol+1] + BUFFER, yBounds[yLin] + BUFFER))
+		  }
+		}
+	}
 }
 
 # PLOTS --------------------------
