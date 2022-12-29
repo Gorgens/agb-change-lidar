@@ -1,11 +1,11 @@
-WORK.PATH = "C:\\FUSION\\SDM\\SDM_A01_2017_LiDAR\\"
+WORK.PATH = "C:\\FUSION\\SDM\\SDM_A01_2012_LiDAR\\"
 setwd(WORK.PATH)
-ORIG.LAS = "C:\\FUSION\\SDM\\SDM_A01_2017_LiDAR\\LAZ\\"
+ORIG.LAS = "C:\\FUSION\\SDM\\SDM_A01_2012_LiDAR\\LAZ\\"
 
 # PARAMETROS OBRIGATORIOS -----------
 
-RES.DTM = 1
 RES.CHM = 1
+RES.DTM = 1
 
 # PARAMETROS OPCIONAIS -----------
 CLEAN = FALSE
@@ -24,11 +24,11 @@ TREE = FALSE
   LMF = 30
 
 TILES.PATH = "tiles\\"
+CLEAN.PATH = "clean\\"
 GND.PATH = "gnd\\"
 DTM.PATH = "dtm\\"
 CHM.PATH = "chm\\"
 THIN.PATH = "thin\\"
-NORM.PATH = "norm\\"
 GRID.PATH = "grid\\"
 TREE.PATH = "tree\\"
 
@@ -305,20 +305,35 @@ for (i in LAS.FILES){
 				CSV))
 }
 
-
-
-
-REM PAREI AQUI!!!!!!!!!!!!!!!!!!!!!!!!!!  
 # GRID METRICS ------------------
 dir.create("grid")
+
+if (CLEAN){
+	LAS.FILES = list.files(paste(WORK.PATH, CLEAN.PATH, sep=""), pattern = "*.las")
+} else if (THIN){
+	LAS.FILES = list.files(paste(WORK.PATH, THIN.PATH, sep=""), pattern = "*.las")
+} else {
+	LAS.FILES = list.files(paste(WORK.PATH, TILES.PATH, sep=""), pattern = "*.las")
+}
+
 for (i in LAS.FILES){
   if (GRID){
+    DTM = paste(WORK.PATH, DTM.PATH, "*.dtm", sep="")
     GRD = paste(WORK.PATH, GRID.PATH, tools::file_path_sans_ext(i), "grid.csv", sep="")
-      
-    print(paste("c:\\fusion\\gridmetrics", 
+    if (CLEAN){
+		LAS = paste(WORK.PATH, CLEAN.PATH, tools::file_path_sans_ext(i), ".las", sep="")
+	} else if (THIN){
+		LAS = paste(WORK.PATH, THIN.PATH, tools::file_path_sans_ext(i), ".las", sep="")
+	} else {
+		LAS = paste(WORK.PATH, TILES.PATH, tools::file_path_sans_ext(i), ".las", sep="")
+	}
+  
+    print(paste("c:\\fusion\\gridmetrics",
+		    "/topo:20,23", 
                 "/nointensity",
                 DTM, HEIGHT, RES.GRID, GRD, LAS))
     shell(paste("c:\\fusion\\gridmetrics", 
+		    "/topo:20,23",
                 "/nointensity",
                 DTM, HEIGHT, RES.GRID, GRD, LAS))
   }
@@ -400,7 +415,7 @@ for (i in LAS.FILES){
   #   73 KDE elev max mode
   #   74 KDE elev mode range
   
-METRICS = c(38, 9)
+METRICS = c(26, 31, 33, 35, 54)
 for (i in LAS.FILES){
   for (col in METRICS){
     GRD = paste(WORK.PATH, GRID.PATH, tools::file_path_sans_ext(i), "grid_all_returns_elevation_stats.csv", sep="")
@@ -410,5 +425,74 @@ for (i in LAS.FILES){
   }  
 }
    
+TOPO = c(6)
+for (i in LAS.FILES){
+  for (col in TOPO ){
+    GRD = paste(WORK.PATH, GRID.PATH, tools::file_path_sans_ext(i), "grid_topo_metrics.csv", sep="")
+    GOUT = paste(WORK.PATH, GRID.PATH, tools::file_path_sans_ext(i), col, "topoGrid.asc", sep="")
+    print(paste("c:\\fusion\\csv2grid", GRD, col, GOUT))
+    shell(paste("c:\\fusion\\csv2grid", GRD, col, GOUT))
+  }  
+}
 
+# CLIP GRIDS ----------
+require(raster)
+xBounds = seq(MINX, MAXX, by = XSTEP)
+yBounds = rev(seq(MINY, MAXY, by = YSTEP))
+
+if (THIN){
+	SUFIX = 'Thin'
+} else {
+	SUFIX = ''
+}
+
+for (col in METRICS){
+	for (c in seq(1, length(xBounds)-1)){
+	  for (l in seq(1, length(yBounds)-1)){
+		boundary = as(extent(xBounds[c], xBounds[c+1], yBounds[l+1], yBounds[l]), 'SpatialPolygons')
+		if(file.exists(paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"grid.asc"))){
+		  chmTemp = tryCatch({
+			raster(paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"grid.asc"))
+		  }, warning = function(w) {
+			hasCHM = FALSE
+		  }, error = function(e) {
+			hasCHM = FALSE
+		  }, finally = {
+			hasCHM = TRUE
+		  })
+		} else {next}  
+		if(is.null(intersect(extent(chmTemp), boundary))){
+			next    
+		}else{
+		  chmTemp = crop(chmTemp, boundary)
+		  writeRaster(chmTemp, paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"gridCrop.asc"))
+		}
+	  }
+	}
+}
+   
+for (col in TOPO){
+	for (c in seq(1, length(xBounds)-1)){
+	  for (l in seq(1, length(yBounds)-1)){
+		boundary = as(extent(xBounds[c], xBounds[c+1], yBounds[l+1], yBounds[l]), 'SpatialPolygons')
+		if(file.exists(paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"grid_topo_metrics.asc"))){
+		  chmTemp = tryCatch({
+			raster(paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"grid_topo_metrics.asc"))
+		  }, warning = function(w) {
+			hasCHM = FALSE
+		  }, error = function(e) {
+			hasCHM = FALSE
+		  }, finally = {
+			hasCHM = TRUE
+		  })
+		} else {next}  
+		if(is.null(intersect(extent(chmTemp), boundary))){
+			next    
+		}else{
+		  chmTemp = crop(chmTemp, boundary)
+		  writeRaster(chmTemp, paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"grid_topo_metricsCrop.asc"))
+		}
+	  }
+	}
+}
   

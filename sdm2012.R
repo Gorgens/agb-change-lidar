@@ -450,26 +450,51 @@ if (THIN){
 }
 
 for (col in METRICS){
-for (c in seq(1, length(xBounds)-1)){
-  for (l in seq(1, length(yBounds)-1)){
-    boundary = as(extent(xBounds[c], xBounds[c+1], yBounds[l+1], yBounds[l]), 'SpatialPolygons')
-    if(file.exists(paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"grid.asc"))){
-      chmTemp = tryCatch({
-        raster(paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"grid.asc"))
-      }, warning = function(w) {
-        hasCHM = FALSE
-      }, error = function(e) {
-        hasCHM = FALSE
-      }, finally = {
-        hasCHM = TRUE
-      })
-    } else {next}  
-    if(is.null(intersect(extent(chmTemp), boundary))){
-    	next    
-    }else{
-      chmTemp = crop(chmTemp, boundary)
-      writeRaster(chmTemp, paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"gridCrop.asc"))
-    }
-  }
-}
-}  
+	for (c in seq(1, length(xBounds)-1)){
+	  for (l in seq(1, length(yBounds)-1)){
+		boundary = as(extent(xBounds[c], xBounds[c+1], yBounds[l+1], yBounds[l]), 'SpatialPolygons')
+		if(file.exists(paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"grid.asc"))){
+		  chmTemp = tryCatch({
+			raster(paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"grid.asc"))
+		  }, warning = function(w) {
+			hasCHM = FALSE
+		  }, error = function(e) {
+			hasCHM = FALSE
+		  }, finally = {
+			hasCHM = TRUE
+		  })
+		} else {next}  
+		if(is.null(intersect(extent(chmTemp), boundary))){
+			next    
+		}else{
+		  chmTemp = crop(chmTemp, boundary)
+		  writeRaster(chmTemp, paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"gridCrop.asc"))
+		}
+	  }
+	}
+} 
+
+for (col in TOPO){
+	for (c in seq(1, length(xBounds)-1)){
+	  for (l in seq(1, length(yBounds)-1)){
+		boundary = as(extent(xBounds[c], xBounds[c+1], yBounds[l+1], yBounds[l]), 'SpatialPolygons')
+		if(file.exists(paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"grid_topo_metrics.asc"))){
+		  chmTemp = tryCatch({
+			raster(paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"grid_topo_metrics.asc"))
+		  }, warning = function(w) {
+			hasCHM = FALSE
+		  }, error = function(e) {
+			hasCHM = FALSE
+		  }, finally = {
+			hasCHM = TRUE
+		  })
+		} else {next}  
+		if(is.null(intersect(extent(chmTemp), boundary))){
+			next    
+		}else{
+		  chmTemp = crop(chmTemp, boundary)
+		  writeRaster(chmTemp, paste0(WORK.PATH, GRID.PATH, "tile00",l,"x00",c,SUFIX,col,"grid_topo_metricsCrop.asc"))
+		}
+	  }
+	}
+} 
