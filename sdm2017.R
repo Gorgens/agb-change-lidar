@@ -1,6 +1,6 @@
-WORK.PATH = "C:\\FUSION\\SDM\\SDM_A01_2012_LiDAR\\"
+WORK.PATH = "C:\\FUSION\\SDM\\SDM_A01_2017_LiDAR\\"
 setwd(WORK.PATH)
-ORIG.LAS = "C:\\FUSION\\SDM\\SDM_A01_2012_LiDAR\\LAZ\\"
+ORIG.LAS = "C:\\FUSION\\SDM\\SDM_A01_2017_LiDAR\\LAZ\\"
 
 # PARAMETROS OBRIGATORIOS -----------
 
@@ -29,6 +29,7 @@ GND.PATH = "gnd\\"
 DTM.PATH = "dtm\\"
 CHM.PATH = "chm\\"
 THIN.PATH = "thin\\"
+NORM.PATH = "norm\\"
 GRID.PATH = "grid\\"
 TREE.PATH = "tree\\"
 
@@ -294,6 +295,32 @@ LAS.FILES = list.files(paste(WORK.PATH, PLOTS.PATH, sep=""), pattern = "*.las")
 for (i in LAS.FILES){
     LAS = paste(WORK.PATH, PLOTS.PATH, tools::file_path_sans_ext(i), ".las", sep="")
 	CSV = paste(WORK.PATH, PLOTS.PATH, "MetricsPlots.csv", sep="")
+      
+    print(paste("c:\\fusion\\CloudMetrics", 
+				paste0('/above:', HEIGHT),
+                LAS,
+				CSV))
+    shell(paste("c:\\fusion\\CloudMetrics", 
+				paste0('/above:', HEIGHT),
+                LAS,
+				CSV))
+}
+
+# SUBPLOTS --------------------------
+PLOTS.PATH = "subplots\\"
+dir.create("subplots")  
+shell(paste("c:\\fusion\\PolyClipData",
+		"/multifile",
+#		"/shape:1,*",
+		paste0(WORK.PATH, "subplots.shp"),
+		paste0(WORK.PATH, PLOTS.PATH, "subplot.las"),
+		paste0(WORK.PATH, NORM.PATH, "*.las")))
+
+# CLOUD METRICS SUBPLOTS -----------
+LAS.FILES = list.files(paste(WORK.PATH, PLOTS.PATH, sep=""), pattern = "*.las")
+for (i in LAS.FILES){
+    LAS = paste(WORK.PATH, PLOTS.PATH, tools::file_path_sans_ext(i), ".las", sep="")
+	CSV = paste(WORK.PATH, PLOTS.PATH, "MetricsSubPlots.csv", sep="")
       
     print(paste("c:\\fusion\\CloudMetrics", 
 				paste0('/above:', HEIGHT),

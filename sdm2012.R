@@ -29,6 +29,7 @@ GND.PATH = "gnd\\"
 DTM.PATH = "dtm\\"
 CHM.PATH = "chm\\"
 THIN.PATH = "thin\\"
+NORM.PATH = "norm\\"
 GRID.PATH = "grid\\"
 TREE.PATH = "tree\\"
 
@@ -201,7 +202,6 @@ for (c in seq(1, length(xBounds)-1)){
 }
 
 # NORM --------------------------
-NORM.PATH = "norm\\"
 dir.create("norm")  
 if (CLEAN){ 
 	if (THIN){
@@ -307,6 +307,31 @@ for (i in LAS.FILES){
 				CSV))
 }
 
+# SUBPLOTS --------------------------
+PLOTS.PATH = "subplots\\"
+dir.create("plots")  
+shell(paste("c:\\fusion\\PolyClipData",
+		"/multifile",
+#		"/shape:1,*",
+		paste0(WORK.PATH, "subplots.shp"),
+		paste0(WORK.PATH, PLOTS.PATH, "subplot.las"),
+		paste0(WORK.PATH, NORM.PATH, "*.las")))
+
+# CLOUD METRICS SUBPLOTS -----------
+LAS.FILES = list.files(paste(WORK.PATH, PLOTS.PATH, sep=""), pattern = "*.las")
+for (i in LAS.FILES){
+    LAS = paste(WORK.PATH, PLOTS.PATH, tools::file_path_sans_ext(i), ".las", sep="")
+	CSV = paste(WORK.PATH, PLOTS.PATH, "MetricsSubPlots.csv", sep="")
+      
+    print(paste("c:\\fusion\\CloudMetrics", 
+				paste0('/above:', HEIGHT),
+                LAS,
+				CSV))
+    shell(paste("c:\\fusion\\CloudMetrics", 
+				paste0('/above:', HEIGHT),
+                LAS,
+				CSV))
+}
 
 # GRID METRICS ------------------
 dir.create("grid")
